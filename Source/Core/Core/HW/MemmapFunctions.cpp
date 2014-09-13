@@ -921,4 +921,64 @@ u32 TranslateAddress(const u32 _Address, const XCheckTLBFlag _Flag)
 
 	return 0;
 }
+
+void PrintMMUInfo()
+{
+	bool instr = (MSR &(1 << (31 - 26))) != 0;
+	bool data = (MSR &(1 << (31 - 27))) != 0;
+	NOTICE_LOG(MEMMAP, "MMU state: instruction: %s data: %s", instr ? "on" : "off", data ? "on" : "off");
+	/*WARN_LOG(MEMMAP, "Instruction BATs");
+	WARN_LOG(MEMMAP, "n virt addr  size       phy addr");
+	bool enhanced_bats = SConfig::GetInstance().m_LocalCoreStartupParameter.bWii && HID4.SBE;
+	int batCount = enhanced_bats ? 4 : 8;
+	for (int i = 0; i < batCount; i++)
+	{
+		u32 bat_lower = PowerPC::ppcState.spr[spr + i * 2];
+		u32 bat_upper = PowerPC::ppcState.spr[spr + 1 + i * 2];
+		WARN_LOG(MEMMAP, "%i %#08x %#08x %#08x", BATU_BEPI(bat_lower) )
+	}*/
+	NOTICE_LOG(MEMMAP, "Page table address: %08x", PowerPC::ppcState.pagetable_base);
+	/*u8* pRAM = GetPointer(0);
+	for (u32 a = 0; a <= PowerPC::ppcState.pagetable_hashmask; a++) {
+		u32 pteg_addr = (a << 6) | PowerPC::ppcState.pagetable_base;
+		for (int i = 0; i < 8; i++)
+		{
+			UPTE1 PTE1;
+			PTE1.Hex = bswap(*(u32*)&pRAM[pteg_addr]);
+
+			if (PTE1.V)
+			{
+				for (int s = 0; s < 0x10; s++)
+				{
+					if (SR_VSID(PowerPC::ppcState.sr[s]) != PTE1.VSID)
+						continue;
+					UPTE2 PTE2;
+					PTE2.Hex = bswap((*(u32*)&pRAM[(pteg_addr + 4)]));
+
+					u32 vaddr = s << (32 - 4) | PTE1.API << (32 - 4 - 6);
+					u32 paddr = PTE2.RPN << 12;
+					WARN_LOG(MEMMAP, "%08x %08x", vaddr, paddr);
+				}
+			}
+			pteg_addr += 8;
+		}
+	}*/
+	u32 last_addr = 1; // an invalid value so that the first mapping will still print
+	for (u32 page = 0; page < (1 << 20); ++page)
+	{
+		u32 addr = page << 12;
+		u32 mapped_addr = TranslateAddress(addr + 4, FLAG_READ);
+		if ((mapped_addr != last_addr + 4096) && !(mapped_addr == 0 && last_addr == 0))
+		{
+			// not a continuation of the last mapping, it seems
+			if (mapped_addr != 0)
+				NOTICE_LOG(MEMMAP, "0x%08x 0x%08x", addr, mapped_addr - 4);
+			else
+				NOTICE_LOG(MEMMAP, "0x%08x not mapped", addr);
+		}
+		last_addr = mapped_addr;
+	}
+
+}
+
 } // namespace

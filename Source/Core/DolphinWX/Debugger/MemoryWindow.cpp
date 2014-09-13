@@ -50,6 +50,7 @@ enum
 	IDM_DUMP_MEMORY,
 	IDM_DUMP_MEM2,
 	IDM_DUMP_FAKEVMEM,
+	IDM_PRINT_MMU,
 	IDM_VALBOX,
 	IDM_U8,
 	IDM_U16,
@@ -67,6 +68,7 @@ BEGIN_EVENT_TABLE(CMemoryWindow, wxPanel)
 	EVT_BUTTON(IDM_DUMP_MEMORY,     CMemoryWindow::OnDumpMemory)
 	EVT_BUTTON(IDM_DUMP_MEM2,       CMemoryWindow::OnDumpMem2)
 	EVT_BUTTON(IDM_DUMP_FAKEVMEM,   CMemoryWindow::OnDumpFakeVMEM)
+	EVT_BUTTON(IDM_PRINT_MMU,       CMemoryWindow::OnPrintMMU)
 	EVT_CHECKBOX(IDM_U8,            CMemoryWindow::U8)
 	EVT_CHECKBOX(IDM_U16,           CMemoryWindow::U16)
 	EVT_CHECKBOX(IDM_U32,           CMemoryWindow::U32)
@@ -104,6 +106,7 @@ CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id,
 
 	if (SConfig::GetInstance().m_LocalCoreStartupParameter.bTLBHack == true)
 		sizerRight->Add(new wxButton(this, IDM_DUMP_FAKEVMEM, _("&Dump FakeVMEM")));
+	sizerRight->Add(new wxButton(this, IDM_PRINT_MMU, _("Print &MMU mappings")));
 
 	wxStaticBoxSizer* sizerSearchType = new wxStaticBoxSizer(wxVERTICAL, this, _("Search"));
 
@@ -447,4 +450,9 @@ void CMemoryWindow::onAscii(wxCommandEvent& event)
 void CMemoryWindow::onHex(wxCommandEvent& event)
 {
 	chkAscii->SetValue(0);
+}
+
+void CMemoryWindow::OnPrintMMU(wxCommandEvent& event)
+{
+	Memory::PrintMMUInfo();
 }

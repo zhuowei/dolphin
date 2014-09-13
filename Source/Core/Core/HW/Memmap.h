@@ -75,6 +75,8 @@ void DoState(PointerWrap &p);
 void Clear();
 bool AreMemoryBreakpointsActivated();
 
+void PrintMMUInfo();
+
 // ONLY for use by GUI
 u8 ReadUnchecked_U8(const u32 _Address);
 u32 ReadUnchecked_U32(const u32 _Address);
