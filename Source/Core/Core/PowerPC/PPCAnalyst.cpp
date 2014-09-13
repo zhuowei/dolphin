@@ -616,12 +616,14 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock *block, CodeBuffer *buffer, u32 
 	block->m_memory_exception = false;
 	block->m_num_instructions = 0;
 
+	/*
 	if (address == 0)
 	{
 		// Memory exception occurred during instruction fetch
 		block->m_memory_exception = true;
 		return address;
 	}
+	*/
 
 	if (SConfig::GetInstance().m_LocalCoreStartupParameter.bMMU && (address & JIT_ICACHE_VMEM_BIT))
 	{
