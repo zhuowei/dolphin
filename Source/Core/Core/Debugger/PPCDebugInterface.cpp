@@ -55,7 +55,7 @@ void PPCDebugInterface::GetRawMemoryString(int memory, unsigned int address, cha
 {
 	if (Core::GetState() != Core::CORE_UNINITIALIZED)
 	{
-		if (memory || Memory::IsRAMAddress(address, true, true))
+		if (1||memory || Memory::IsRAMAddress(address, true, true))
 		{
 			snprintf(dest, max_size, "%08X%s", ReadExtraMemory(memory, address), memory ? " (ARAM)" : "");
 		}

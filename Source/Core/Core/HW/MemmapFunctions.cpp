@@ -88,15 +88,23 @@ static u32 EFB_Read(const u32 addr)
 static void GenerateDSIException(u32 _EffectiveAddress, bool _bWrite);
 
 template <typename T>
-inline void ReadFromHardware(T &_var, const u32 em_address, const u32 effective_address, Memory::XCheckTLBFlag flag)
+inline void ReadFromHardware(T &_var, const u32 em_address_, const u32 effective_address, Memory::XCheckTLBFlag flag)
 {
+	bool instr = (MSR &(1 << (31 - 26))) != 0;
+	bool datax = (MSR &(1 << (31 - 27))) != 0;
+	u32 em_address = em_address_;
+	if ((instr && (flag == FLAG_OPCODE)) || datax && (flag != FLAG_OPCODE)) {
+		em_address = TranslateAddress(em_address, flag);
+		if (!em_address)
+			em_address = em_address_;
+	}
 	// TODO: Figure out the fastest order of tests for both read and write (they are probably different).
-	if ((em_address & 0xC8000000) == 0xC8000000)
+	if ((em_address & 0x38000000) == 0x8000000)
 	{
-		if (em_address < 0xcc000000)
-			_var = EFB_Read(em_address);
+		if (em_address < 0xc000000)
+			_var = EFB_Read(em_address | 0xc0000000);
 		else
-			_var = mmio_mapping->Read<T>(em_address);
+			_var = mmio_mapping->Read<T>(em_address | 0xc0000000);
 	}
 	else if (((em_address & 0xF0000000) == 0x80000000) ||
 		((em_address & 0xF0000000) == 0xC0000000) ||
@@ -123,13 +131,14 @@ inline void ReadFromHardware(T &_var, const u32 em_address, const u32 effective_
 	else
 	{
 		// MMU
-		u32 tlb_addr = TranslateAddress(em_address, flag);
+		u32 tlb_addr = em_address;// TranslateAddress(em_address, flag);
 		if (tlb_addr == 0)
 		{
 			if (flag == FLAG_READ)
 			{
 				GenerateDSIException(em_address, false);
 			}
+			_var = 0;
 		}
 		else
 		{
@@ -140,8 +149,16 @@ inline void ReadFromHardware(T &_var, const u32 em_address, const u32 effective_
 
 
 template <typename T>
-inline void WriteToHardware(u32 em_address, const T data, u32 effective_address, Memory::XCheckTLBFlag flag)
+inline void WriteToHardware(u32 em_address_, const T data, u32 effective_address, Memory::XCheckTLBFlag flag)
 {
+	bool instr = (MSR &(1 << (31 - 26))) != 0;
+	bool datax = (MSR &(1 << (31 - 27))) != 0;
+	u32 em_address = em_address_;
+	if ((instr && (flag == FLAG_OPCODE)) || datax && (flag != FLAG_OPCODE)) {
+		em_address = TranslateAddress(em_address, flag);
+		if (!em_address)
+			em_address = em_address_;
+	}
 	// First, let's check for FIFO writes, since they are probably the most common
 	// reason we end up in this function:
 	if ((em_address & 0xFFFFF000) == 0xCC008000)
@@ -154,9 +171,9 @@ inline void WriteToHardware(u32 em_address, const T data, u32 effective_address,
 		case 8: GPFifo::Write64((u64)data, em_address); return;
 		}
 	}
-	if ((em_address & 0xC8000000) == 0xC8000000)
+	if ((em_address & 0x38000000) == 0x8000000)
 	{
-		if (em_address < 0xcc000000)
+		if (em_address < 0xc000000)
 		{
 			int x = (em_address & 0xfff) >> 2;
 			int y = (em_address >> 12) & 0x3ff;
@@ -176,7 +193,7 @@ inline void WriteToHardware(u32 em_address, const T data, u32 effective_address,
 		}
 		else
 		{
-			mmio_mapping->Write(em_address, data);
+			mmio_mapping->Write(em_address | 0xc0000000, data);
 			return;
 		}
 	}
@@ -208,7 +225,7 @@ inline void WriteToHardware(u32 em_address, const T data, u32 effective_address,
 	else
 	{
 		// MMU
-		u32 tlb_addr = TranslateAddress(em_address, flag);
+		u32 tlb_addr = em_address;// TranslateAddress(em_address, flag);
 		if (tlb_addr == 0)
 		{
 			if (flag == FLAG_WRITE)
@@ -926,6 +943,8 @@ void PrintMMUInfo()
 {
 	bool instr = (MSR &(1 << (31 - 26))) != 0;
 	bool data = (MSR &(1 << (31 - 27))) != 0;
+	NOTICE_LOG(MEMMAP, "MMU support is %s", SConfig::GetInstance().m_LocalCoreStartupParameter.bMMU ?
+		"enabled" : "disabled");
 	NOTICE_LOG(MEMMAP, "MMU state: instruction: %s data: %s", instr ? "on" : "off", data ? "on" : "off");
 	/*WARN_LOG(MEMMAP, "Instruction BATs");
 	WARN_LOG(MEMMAP, "n virt addr  size       phy addr");
@@ -938,8 +957,8 @@ void PrintMMUInfo()
 		WARN_LOG(MEMMAP, "%i %#08x %#08x %#08x", BATU_BEPI(bat_lower) )
 	}*/
 	NOTICE_LOG(MEMMAP, "Page table address: %08x", PowerPC::ppcState.pagetable_base);
-	/*u8* pRAM = GetPointer(0);
-	for (u32 a = 0; a <= PowerPC::ppcState.pagetable_hashmask; a++) {
+	u8* pRAM = GetPointer(0);
+	/*for (u32 a = 0; a <= PowerPC::ppcState.pagetable_hashmask; a++) {
 		u32 pteg_addr = (a << 6) | PowerPC::ppcState.pagetable_base;
 		for (int i = 0; i < 8; i++)
 		{
@@ -963,6 +982,7 @@ void PrintMMUInfo()
 			pteg_addr += 8;
 		}
 	}*/
+
 	u32 last_addr = 1; // an invalid value so that the first mapping will still print
 	for (u32 page = 0; page < (1 << 20); ++page)
 	{
