@@ -119,7 +119,37 @@ void Interpreter::rfid(UGeckoInstruction _inst)
 // We do it anyway, though :P
 void Interpreter::sc(UGeckoInstruction _inst)
 {
+	/*
 	PowerPC::ppcState.Exceptions |= EXCEPTION_SYSCALL;
 	PowerPC::CheckExceptions();
+	*/
+	ERROR_LOG(POWERPC, "SC called! r0=%x r3=%x r4=%x r5=%x r6=%x r7=%x r8=%x r9=%x pc=%x", PowerPC::ppcState.gpr[0],
+		PowerPC::ppcState.gpr[3],
+		PowerPC::ppcState.gpr[4],
+		PowerPC::ppcState.gpr[5],
+		PowerPC::ppcState.gpr[6],
+		PowerPC::ppcState.gpr[7],
+		PowerPC::ppcState.gpr[8],
+		PowerPC::ppcState.gpr[9],
+		PC);
+	switch (PowerPC::ppcState.gpr[0]) {
+	case 0: // console write
+		ERROR_LOG(POWERPC, "%s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[3]));
+		break;
+	case 0x100: // panic
+		ERROR_LOG(POWERPC, "PANIC: %s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[4]));
+		break;
+	case 0x5600: // log entry
+		ERROR_LOG(POWERPC, "Entry: %x %x %x %s", PowerPC::ppcState.gpr[3],
+			PowerPC::ppcState.gpr[4],
+			PowerPC::ppcState.gpr[5],
+			(const char*)Memory::GetPointer(PowerPC::ppcState.gpr[6]));
+		break;
+	case 0x5800: // bus speed
+		PowerPC::ppcState.gpr[3] = 0xfeedfee1;
+		break;
+	default:
+		break;
+	}
 	m_EndBlock = true;
 }

@@ -122,6 +122,7 @@ static void GenerateDSIException(u32 _EffectiveAddress, bool _bWrite);
 template <XCheckTLBFlag flag, typename T>
 __forceinline static T ReadFromHardware(const u32 em_address)
 {
+	/*
 	int segment = em_address >> 28;
 	bool performTranslation = UReg_MSR(MSR).DR;
 
@@ -224,13 +225,21 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 
 	// The easy case!
 	return bswap(*(const T*)&Memory::physical_base[tlb_addr]);
+	*/
+	if ((em_address & 0xfffff000) == 0xefe0a000) {
+		ERROR_LOG(POWERPC, "Read config: %x pc=%x", em_address, PowerPC::ppcState.pc);
+	}
+	if ((em_address & 0xffff0000) == 0xdead0000) {
+		ERROR_LOG(POWERPC, "dead: %x pc=%x", em_address, PowerPC::ppcState.pc);
+	}
+	return bswap(*(const T*)&Memory::base[em_address]);
 }
 
 
 template <XCheckTLBFlag flag, typename T>
 __forceinline static void WriteToHardware(u32 em_address, const T data)
 {
-	int segment = em_address >> 28;
+/*	int segment = em_address >> 28;
 	// Quick check for an address that can't meet any of the following conditions,
 	// to speed up the MMU path.
 	bool performTranslation = UReg_MSR(MSR).DR;
@@ -371,6 +380,11 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 
 	// The easy case!
 	*(T*)&Memory::physical_base[tlb_addr] = bswap(data);
+	*/
+	if ((em_address & 0xffff0000) == 0xefe10000) {
+		ERROR_LOG(POWERPC, "Write: %x = %x pc=%x", em_address, data, PowerPC::ppcState.pc);
+	}
+	*(T*)&Memory::base[em_address] = bswap(data);
 }
 // =====================
 

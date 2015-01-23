@@ -437,7 +437,7 @@ bool CBoot::BootUp()
 	}
 
 	// HLE jump to loader (homebrew).  Disabled when Gecko is active as it interferes with the code handler
-	if (!SConfig::GetInstance().m_LocalCoreStartupParameter.bEnableCheats)
+	/*if (!SConfig::GetInstance().m_LocalCoreStartupParameter.bEnableCheats)
 	{
 		HLE::Patch(0x80001800, "HBReload");
 		Memory::CopyToEmu(0x00001804, "STUBHAXX", 8);
@@ -445,6 +445,11 @@ bool CBoot::BootUp()
 
 	// Not part of the binary itself, but either we or Gecko OS might insert
 	// this, and it doesn't clear the icache properly.
-	HLE::Patch(0x800018a8, "GeckoCodehandler");
+	HLE::Patch(0x800018a8, "GeckoCodehandler");*/
+	for (int i = 0; i < 0x1000; i += 4) {
+		Memory::Write_U32(0xd0000 + i, 0xefe0a000 + i);
+	}
+	Memory::Write_U32(0xffffffff, 0xefe0a404);
+	Memory::Write_U32(0xdead0000, 0xefe0a41c);
 	return true;
 }

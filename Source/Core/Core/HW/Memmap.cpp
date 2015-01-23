@@ -153,15 +153,15 @@ bool IsInitialized()
 // be backed by actual memory.
 static MemoryView views[] =
 {
-	{&m_pRAM,      0x00000000, RAM_SIZE,      0},
-	{nullptr,      0x200000000, RAM_SIZE,     MV_MIRROR_PREVIOUS},
-	{nullptr,      0x280000000, RAM_SIZE,     MV_MIRROR_PREVIOUS},
-	{nullptr,      0x2C0000000, RAM_SIZE,     MV_MIRROR_PREVIOUS},
-	{&m_pL1Cache,  0x2E0000000, L1_CACHE_SIZE, 0},
-	{&m_pFakeVMEM, 0x27E000000, FAKEVMEM_SIZE, MV_FAKE_VMEM},
+	{&m_pRAM,      0x00000000, 0x40000000,      0},
+	{&m_pEXRAM,    0xC0000000, 0x40000000, 0 },
+/*	{nullptr,      0x80000000, RAM_SIZE,      MV_MIRROR_PREVIOUS},
+	{nullptr,      0xC0000000, RAM_SIZE,      MV_MIRROR_PREVIOUS},
+	{&m_pL1Cache,  0xE0000000, L1_CACHE_SIZE, 0},
+	{&m_pFakeVMEM, 0x7E000000, FAKEVMEM_SIZE, MV_FAKE_VMEM},
 	{&m_pEXRAM,    0x10000000, EXRAM_SIZE,    MV_WII_ONLY},
-	{nullptr,      0x290000000, EXRAM_SIZE,   MV_WII_ONLY | MV_MIRROR_PREVIOUS},
-	{nullptr,      0x2D0000000, EXRAM_SIZE,   MV_WII_ONLY | MV_MIRROR_PREVIOUS},
+	{nullptr,      0x90000000, EXRAM_SIZE,    MV_WII_ONLY | MV_MIRROR_PREVIOUS},
+	{nullptr,      0xD0000000, EXRAM_SIZE,    MV_WII_ONLY | MV_MIRROR_PREVIOUS},*/
 };
 static const int num_views = sizeof(views) / sizeof(MemoryView);
 
@@ -297,6 +297,7 @@ std::string GetString(u32 em_address, size_t size)
 
 u8* GetPointer(u32 address)
 {
+	/*
 	// TODO: Should we be masking off more bits here?  Can all devices access
 	// EXRAM?
 	address &= 0x3FFFFFFF;
@@ -311,7 +312,8 @@ u8* GetPointer(u32 address)
 
 	PanicAlert("Unknown Pointer 0x%08x PC 0x%08x LR 0x%08x", address, PC, LR);
 
-	return nullptr;
+	return nullptr;*/
+	return m_pRAM + address;
 }
 
 u8 Read_U8(u32 address)
