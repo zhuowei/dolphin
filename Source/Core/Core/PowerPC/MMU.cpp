@@ -232,7 +232,7 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 	if ((em_address & 0xffff0000) == 0xdead0000) {
 		ERROR_LOG(POWERPC, "dead: %x pc=%x", em_address, PowerPC::ppcState.pc);
 	}
-	return bswap(*(const T*)&Memory::base[em_address]);
+	return bswap(*(const T*)&Memory::physical_base[em_address]);
 }
 
 
@@ -384,7 +384,7 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 	if ((em_address & 0xffff0000) == 0xefe10000) {
 		ERROR_LOG(POWERPC, "Write: %x = %x pc=%x", em_address, data, PowerPC::ppcState.pc);
 	}
-	*(T*)&Memory::base[em_address] = bswap(data);
+	*(T*)&Memory::physical_base[em_address] = bswap(data);
 }
 // =====================
 
