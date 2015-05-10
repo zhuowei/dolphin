@@ -116,6 +116,54 @@ void Interpreter::rfid(UGeckoInstruction _inst)
 	m_EndBlock = true;
 }
 
+static u32 lastBuffer = 0;
+
+static u32 nextArg(int* indexPtr, int regStart) {
+	int index = (*indexPtr)++;
+	if (index + regStart < 31)
+	{
+		return GPR(index + regStart);
+	}
+	return 0xdeadf00d;
+}
+
+static std::string doKernelPrintf(const char* format, int regStart) {
+	std::stringstream os;
+	int nextArgIndex = 0;
+	const char* f = format;
+	char c;
+	while ((c = *f++) != 0)
+	{
+		if (c == '%')
+		{
+			char typ = *f++;
+			u32 a = nextArg(&nextArgIndex, regStart);
+			switch (typ) {
+			case 's':
+				os << (const char*) Memory::GetPointer(a);
+				break;
+			case 'd':
+				os << std::dec << (int)a;
+				break;
+			case 'p':
+				os << std::hex << "0x" << (unsigned int)a;
+				break;
+			case 'x':
+				os << std::hex << (unsigned int)a;
+				break;
+			default:
+				os << "%" << typ;
+				break;
+			}
+		}
+		else
+		{
+			os << c;
+		}
+	}
+	return os.str();
+}
+
 // sc isn't really used for anything important in GameCube games (just for a write barrier) so we really don't have to emulate it.
 // We do it anyway, though :P
 void Interpreter::sc(UGeckoInstruction _inst)
@@ -146,19 +194,19 @@ void Interpreter::sc(UGeckoInstruction _inst)
 		ERROR_LOG(POWERPC, "PANIC: %s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[4]));
 		break;
 	case 0x2000: // IPCK submit request
-		// expects a buffer returned in r3
-		GPR(3) = 0xdeadbee0;
+		lastBuffer = GPR(3);
 		break;
 	case 0x5600: // log entry
 		ERROR_LOG(POWERPC, "Entry: %x %x %x %s", PowerPC::ppcState.gpr[3],
 			PowerPC::ppcState.gpr[4],
 			PowerPC::ppcState.gpr[5],
-			(const char*)Memory::GetPointer(PowerPC::ppcState.gpr[6]));
+			doKernelPrintf((const char*) Memory::GetPointer(PowerPC::ppcState.gpr[6]), 7).c_str());
 		break;
 	case 0x5800: // bus speed
 		PowerPC::ppcState.gpr[3] = 0xfeedfee1;
 		break;
 	case 0x5c00: // IPC poll
+		GPR(3) = lastBuffer;
 		break;
 	default:
 		break;
