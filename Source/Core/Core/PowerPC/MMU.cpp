@@ -26,6 +26,7 @@
 #include "Core/HW/Memmap.h"
 #include "Core/HW/MMIO.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/PPCSymbolDB.h"
 
 #include "VideoCommon/VideoBackendBase.h"
 
@@ -226,12 +227,19 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 	// The easy case!
 	return bswap(*(const T*)&Memory::physical_base[tlb_addr]);
 	*/
-	if ((em_address & 0xfffff000) == 0xefe0a000) {
-		ERROR_LOG(POWERPC, "Read config: %x pc=%x", em_address, PowerPC::ppcState.pc);
+#if 0
+	if ((em_address & 0xfff00000) == 0xefe00000) {
+		ERROR_LOG(POWERPC, "Read config: %x pc=%x size=%d", em_address, PowerPC::ppcState.pc, sizeof(T));
+	}
+	if (em_address >= 0xefe0b000 && em_address < 0xefe1d828) {
+		std::string locNam = g_symbolDB.GetDescription(em_address);
+		if (locNam != " --- ") 
+			ERROR_LOG(POWERPC, "Read data: %x pc=%x size=%d desc=%s", em_address, PowerPC::ppcState.pc, sizeof(T), locNam.c_str());
 	}
 	if ((em_address & 0xffff0000) == 0xdead0000) {
 		ERROR_LOG(POWERPC, "dead: %x pc=%x", em_address, PowerPC::ppcState.pc);
 	}
+#endif
 	return bswap(*(const T*)&Memory::physical_base[em_address]);
 }
 
@@ -381,9 +389,12 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 	// The easy case!
 	*(T*)&Memory::physical_base[tlb_addr] = bswap(data);
 	*/
-	if ((em_address & 0xffff0000) == 0xefe10000) {
-		ERROR_LOG(POWERPC, "Write: %x = %x pc=%x", em_address, data, PowerPC::ppcState.pc);
+#if 0
+	if ((em_address & 0xfff00000) == 0xefe00000) {
+		ERROR_LOG(POWERPC, "Write: %x = %x pc=%x size=%d desc=%s", em_address, data, PowerPC::ppcState.pc, sizeof(data),
+			g_symbolDB.GetDescription(em_address).c_str());
 	}
+#endif
 	*(T*)&Memory::physical_base[em_address] = bswap(data);
 }
 // =====================
@@ -677,6 +688,7 @@ bool IsOptimizableRAMAddress(const u32 address)
 
 bool HostIsRAMAddress(u32 address)
 {
+#if 0
 	// TODO: This needs to be rewritten; it makes incorrect assumptions
 	// about BATs and page tables.
 	bool performTranslation = UReg_MSR(MSR).DR;
@@ -702,6 +714,9 @@ bool HostIsRAMAddress(u32 address)
 	else if (Memory::m_pEXRAM && segment == 0x1 && (address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
 		return true;
 	return false;
+#else
+	return true;
+#endif
 
 
 }

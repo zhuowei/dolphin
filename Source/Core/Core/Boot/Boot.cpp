@@ -377,6 +377,7 @@ bool CBoot::BootUp()
 
 		DVDInterface::SetDiscInside(DVDInterface::VolumeIsValid());
 
+		/*
 		// Poor man's bootup
 		if(_StartupPara.bWii)
 			SetupWiiMemory(DiscIO::IVolume::COUNTRY_UNKNOWN);
@@ -384,6 +385,7 @@ bool CBoot::BootUp()
 			EmulatedBS2_GC(true);
 
 		Load_FST(_StartupPara.bWii);
+		*/
 		if(!Boot_ELF(_StartupPara.m_strFilename))
 			return false;
 
@@ -450,6 +452,10 @@ bool CBoot::BootUp()
 		Memory::Write_U32(0xd0000 + i, 0xefe0a000 + i);
 	}
 	Memory::Write_U32(0xffffffff, 0xefe0a404);
-	Memory::Write_U32(0xdead0000, 0xefe0a41c);
+	Memory::Write_U32(0xdead0000, 0xefe0a41c); // title location
+	Memory::Write_U32(0xfa010000, 0xefe0a40c); // passed into Loader_Init and TINYHEAP_setup; seems to work
+	Memory::Write_U32(0x1030, 0xefe0a410);
+	Memory::Write_U32(0xf8000000, 0xefe0a414);
+	Memory::Write_U32(0x3000000, 0xefe0a418);
 	return true;
 }

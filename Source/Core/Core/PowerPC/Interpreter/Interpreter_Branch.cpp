@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "Core/PowerPC/PPCAnalyst.h"
+#include "Core/PowerPC/PPCSymbolDB.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
 
 void Interpreter::bx(UGeckoInstruction _inst)
@@ -123,21 +124,30 @@ void Interpreter::sc(UGeckoInstruction _inst)
 	PowerPC::ppcState.Exceptions |= EXCEPTION_SYSCALL;
 	PowerPC::CheckExceptions();
 	*/
-	ERROR_LOG(POWERPC, "SC called! r0=%x r3=%x r4=%x r5=%x r6=%x r7=%x r8=%x r9=%x pc=%x", PowerPC::ppcState.gpr[0],
-		PowerPC::ppcState.gpr[3],
-		PowerPC::ppcState.gpr[4],
-		PowerPC::ppcState.gpr[5],
-		PowerPC::ppcState.gpr[6],
-		PowerPC::ppcState.gpr[7],
-		PowerPC::ppcState.gpr[8],
-		PowerPC::ppcState.gpr[9],
-		PC);
-	switch (PowerPC::ppcState.gpr[0]) {
+	u32 syscallnum = PowerPC::ppcState.gpr[0];
+	if (syscallnum != 0x5c00) {
+		ERROR_LOG(POWERPC, "SC called! r0=%x (%d) r3=%x r4=%x r5=%x r6=%x r7=%x r8=%x r9=%x pc=%x (%s)", PowerPC::ppcState.gpr[0],
+			PowerPC::ppcState.gpr[0],
+			PowerPC::ppcState.gpr[3],
+			PowerPC::ppcState.gpr[4],
+			PowerPC::ppcState.gpr[5],
+			PowerPC::ppcState.gpr[6],
+			PowerPC::ppcState.gpr[7],
+			PowerPC::ppcState.gpr[8],
+			PowerPC::ppcState.gpr[9],
+			PC,
+			g_symbolDB.GetDescription(PC).c_str());
+	}
+	switch (syscallnum) {
 	case 0: // console write
-		ERROR_LOG(POWERPC, "%s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[3]));
+		ERROR_LOG(POWERPC, "Console write: %s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[3]));
 		break;
 	case 0x100: // panic
 		ERROR_LOG(POWERPC, "PANIC: %s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[4]));
+		break;
+	case 0x2000: // IPCK submit request
+		// expects a buffer returned in r3
+		GPR(3) = 0xdeadbee0;
 		break;
 	case 0x5600: // log entry
 		ERROR_LOG(POWERPC, "Entry: %x %x %x %s", PowerPC::ppcState.gpr[3],
@@ -147,6 +157,8 @@ void Interpreter::sc(UGeckoInstruction _inst)
 		break;
 	case 0x5800: // bus speed
 		PowerPC::ppcState.gpr[3] = 0xfeedfee1;
+		break;
+	case 0x5c00: // IPC poll
 		break;
 	default:
 		break;
