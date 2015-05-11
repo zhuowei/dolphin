@@ -227,11 +227,11 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 	// The easy case!
 	return bswap(*(const T*)&Memory::physical_base[tlb_addr]);
 	*/
-#if 0
-	if ((em_address & 0xfff00000) == 0xefe00000) {
+	if (em_address >= 0xefe01000 && em_address < 0xefe02000) {
 		ERROR_LOG(POWERPC, "Read config: %x pc=%x size=%d", em_address, PowerPC::ppcState.pc, sizeof(T));
 	}
-	if (em_address >= 0xefe0b000 && em_address < 0xefe1d828) {
+#if 0
+	if (em_address >= 0xefe01000 && em_address < 0xefe1d828) {
 		std::string locNam = g_symbolDB.GetDescription(em_address);
 		if (locNam != " --- ") 
 			ERROR_LOG(POWERPC, "Read data: %x pc=%x size=%d desc=%s", em_address, PowerPC::ppcState.pc, sizeof(T), locNam.c_str());
@@ -389,12 +389,11 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 	// The easy case!
 	*(T*)&Memory::physical_base[tlb_addr] = bswap(data);
 	*/
-#if 0
-	if ((em_address & 0xfff00000) == 0xefe00000) {
+	if ((em_address >= 0xefe19d00 && em_address < 0xefe19d1c) || 
+		(em_address >= 0xefe1d818 && em_address < 0xefe1d818 + 0x10)) {
 		ERROR_LOG(POWERPC, "Write: %x = %x pc=%x size=%d desc=%s", em_address, data, PowerPC::ppcState.pc, sizeof(data),
 			g_symbolDB.GetDescription(em_address).c_str());
 	}
-#endif
 	*(T*)&Memory::physical_base[em_address] = bswap(data);
 }
 // =====================

@@ -2,6 +2,8 @@
 // Licensed under GPLv2
 // Refer to the license.txt file included.
 
+#include "Common/FileUtil.h"
+
 #include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/PPCSymbolDB.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
@@ -174,7 +176,7 @@ void Interpreter::sc(UGeckoInstruction _inst)
 	*/
 	u32 syscallnum = PowerPC::ppcState.gpr[0];
 	if (syscallnum != 0x5c00) {
-		ERROR_LOG(POWERPC, "SC called! r0=%x (%d) r3=%x r4=%x r5=%x r6=%x r7=%x r8=%x r9=%x pc=%x (%s)", PowerPC::ppcState.gpr[0],
+		ERROR_LOG(POWERPC, "SC called! r0=%x (%d) r3=%x r4=%x r5=%x r6=%x r7=%x r8=%x r9=%x r10=%x pc=%x (%s)", PowerPC::ppcState.gpr[0],
 			PowerPC::ppcState.gpr[0],
 			PowerPC::ppcState.gpr[3],
 			PowerPC::ppcState.gpr[4],
@@ -183,6 +185,7 @@ void Interpreter::sc(UGeckoInstruction _inst)
 			PowerPC::ppcState.gpr[7],
 			PowerPC::ppcState.gpr[8],
 			PowerPC::ppcState.gpr[9],
+			GPR(10),
 			PC,
 			g_symbolDB.GetDescription(PC).c_str());
 	}
@@ -195,6 +198,16 @@ void Interpreter::sc(UGeckoInstruction _inst)
 		break;
 	case 0x2000: // IPCK submit request
 		lastBuffer = GPR(3);
+		{
+			std::string path = "P:\\docs\\wiiu\\titles\\00050010100040FF\\2108\\rpl\\" + Memory::GetString(0xefe19d1c); // kludge: hardcoded mem address for path
+			ERROR_LOG(POWERPC, "Buffer: %x Path: %s", lastBuffer, path.c_str());
+			size_t fileSize = File::GetSize(path);
+			File::IOFile f(path, "rb");
+			// Kludge: bounce into hardcoded 0xf6000000 buffer since that's what minELF reads from when I put a breakpoint there
+			f.ReadBytes(Memory::GetPointer(0xf6000000), fileSize);
+			Memory::Write_U32((u32)fileSize, lastBuffer + 4); // size of response
+			Memory::Write_U32(1, lastBuffer); // success?
+		}
 		break;
 	case 0x5600: // log entry
 		ERROR_LOG(POWERPC, "Entry: %x %x %x %s", PowerPC::ppcState.gpr[3],
@@ -205,8 +218,19 @@ void Interpreter::sc(UGeckoInstruction _inst)
 	case 0x5800: // bus speed
 		PowerPC::ppcState.gpr[3] = 0xfeedfee1;
 		break;
+	case 0x5b00: // get process index
+		// ???
+		break;
 	case 0x5c00: // IPC poll
 		GPR(3) = lastBuffer;
+		//ERROR_LOG(POWERPC, "IPC poll lastbuffer: %x %x %x", Memory::Read_U32(lastBuffer),
+		//	Memory::Read_U32(lastBuffer + 4), Memory::Read_U32(lastBuffer + 8));
+		/*
+		memset(Memory::GetPointer(lastBuffer + 12), 0x41, 0x100);
+		Memory::Write_U32(0xdeadbeef, lastBuffer);
+		Memory::Write_U32(0x0, lastBuffer + 4); // contains the error code
+		Memory::Write_U32(0, lastBuffer + 8); // type of buffer returned
+		*/
 		break;
 	default:
 		break;

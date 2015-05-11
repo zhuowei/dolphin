@@ -457,5 +457,7 @@ bool CBoot::BootUp()
 	Memory::Write_U32(0x1030, 0xefe0a410);
 	Memory::Write_U32(0xf8000000, 0xefe0a414);
 	Memory::Write_U32(0x3000000, 0xefe0a418);
+	strncpy((char*) Memory::GetPointer(0xefe00000), "pointless.rpx", 0x1000);
+	Memory::Write_U32(0xdead, 0xefe01000); // Process ID
 	return true;
 }
