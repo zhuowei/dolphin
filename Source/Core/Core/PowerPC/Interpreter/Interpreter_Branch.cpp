@@ -196,17 +196,49 @@ void Interpreter::sc(UGeckoInstruction _inst)
 	case 0x100: // panic
 		ERROR_LOG(POWERPC, "PANIC: %s", (const char*)Memory::GetPointer(PowerPC::ppcState.gpr[4]));
 		break;
-	case 0x2000: // IPCK submit request
+	case 0x2000: // IPC submit request: probably goes to IOSU
 		lastBuffer = GPR(3);
 		{
+			u32 argblock = GPR(4);
+			u32 argblockDeref = Memory::Read_U32(argblock + 0);
 			std::string path = "P:\\docs\\wiiu\\titles\\00050010100040FF\\2108\\rpl\\" + Memory::GetString(0xefe19d1c); // kludge: hardcoded mem address for path
-			ERROR_LOG(POWERPC, "Buffer: %x Path: %s", lastBuffer, path.c_str());
+			ERROR_LOG(POWERPC, "Buffer: %x cmd=%x ret=%x fd=%x arg0=%x arg1=%x %x %x Argblock %x Argblock1 %x Argblock2 %x Argblock3 %x *Argblock %x %x %x %x %x Path: %s", lastBuffer,
+				Memory::Read_U32(lastBuffer + 0),
+				Memory::Read_U32(lastBuffer + 4),
+				Memory::Read_U32(lastBuffer + 8),
+				Memory::Read_U32(lastBuffer + 12),
+				Memory::Read_U32(lastBuffer + 16),
+				Memory::Read_U32(lastBuffer + 0x24),
+				Memory::Read_U32(lastBuffer + 0x28),
+				argblock,
+				Memory::Read_U32(argblock + 0),
+				Memory::Read_U32(argblock + 4),
+				Memory::Read_U32(argblock + 8),
+				Memory::Read_U32(argblockDeref + 0),
+				Memory::Read_U32(argblockDeref + 4),
+				Memory::Read_U32(argblockDeref + 8),
+				Memory::Read_U32(argblockDeref + 12),
+				Memory::Read_U32(argblockDeref + 16),
+				path.c_str());
+			if (Memory::Read_U32(lastBuffer + 0) == 6)
+			{
+				// IOCTL
+				ERROR_LOG(POWERPC, "Ioctl: (0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x)",
+					Memory::Read_U32(lastBuffer + 0x8),
+					Memory::Read_U32(lastBuffer + 0x24),
+					Memory::Read_U32(lastBuffer + 0x40),
+					Memory::Read_U32(lastBuffer + 0x2c),
+					Memory::Read_U32(lastBuffer + 0x44),
+					Memory::Read_U32(lastBuffer + 0x34)
+					);
+			}
 			size_t fileSize = File::GetSize(path);
 			File::IOFile f(path, "rb");
-			// Kludge: bounce into hardcoded 0xf6000000 buffer since that's what minELF reads from when I put a breakpoint there
-			f.ReadBytes(Memory::GetPointer(0xf6000000), fileSize);
+			// Yes I know this is supposed to be in the ioctl if statement; deal with it
+			// lastBuffer + 0x44 is the pointer to the output buffer
+			f.ReadBytes(Memory::GetPointer(Memory::Read_U32(lastBuffer + 0x44)), fileSize);
 			Memory::Write_U32((u32)fileSize, lastBuffer + 4); // size of response
-			Memory::Write_U32(1, lastBuffer); // success?
+			//Memory::Write_U32(1, lastBuffer); // success?
 		}
 		break;
 	case 0x5600: // log entry

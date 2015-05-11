@@ -819,7 +819,7 @@ enum
 	SPR_PMC3 = 957,
 	SPR_PMC4 = 958,
 	// Wii U
-	SPR_CORE_ID = 1007,
+	SPR_UPIR = 1007,
 };
 
 // Exceptions
