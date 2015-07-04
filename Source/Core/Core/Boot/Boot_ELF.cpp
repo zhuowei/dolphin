@@ -7,8 +7,12 @@
 
 #include "Core/Boot/Boot.h"
 #include "Core/Boot/ElfReader.h"
+#include "Core/Debugger/Debugger_SymbolMap.h"
 #include "Core/HLE/HLE.h"
+#include "Core/HLE/HLE_WiiU_CoreInit.h"
+#include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/PPCSymbolDB.h"
 
 bool CBoot::IsElfWii(const std::string& filename)
 {
@@ -153,15 +157,13 @@ static ElfReader* BootOneRPX(const std::string& name, std::vector<std::string>& 
 	WARN_LOG(BOOT, "Loading %s at address %x", name.c_str(), rpx_load_address);
 	reader->LoadInto(rpx_load_address);
 	reader->Relocate(exports);
+	reader->LoadSymbols();
+
 	reader->LoadExports(name, exports);
 
-	if (reader->LoadSymbols())
-	{
-		HLE::PatchFunctions();
-	}
 	rpx_load_address += reader->GetLoadedLength();
-	if (name == "coreinit.rpl")
-		PC = reader->GetEntryPoint(); // Coreinit needs to be initialized first
+	//if (name == "coreinit.rpl")
+	//	PC = reader->GetEntryPoint(); // Coreinit needs to be initialized first
 	readers[name] = std::move(reader);
 	return readers.at(name).get();
 }
@@ -218,8 +220,30 @@ bool CBoot::Boot_RPX(const std::string& filename)
 	ElfReader* reader = BootOneRPX(name, ld_library_path, readers, exports);
 	if (reader == nullptr)
 		return false;
+	//g_symbolDB.AddKnownSymbol(exports.map["gx2.rpl"]["GX2Init"], 0x4, "GX2Init", Symbol::SYMBOL_FUNCTION);
+	//g_symbolDB.AddKnownSymbol(exports.map["coreinit.rpl"]["exit"], 0x4, "exit", Symbol::SYMBOL_FUNCTION);
+	g_symbolDB.AddKnownSymbol(0x80001000, 0x4, "FakeMEMAllocFromDefaultHeapEx", Symbol::SYMBOL_FUNCTION);
+	g_symbolDB.AddKnownSymbol(0x80001010, 0x4, "FakeMEMFreeToDefaultHeap", Symbol::SYMBOL_FUNCTION);
+	HLE::PatchFunctions();
+	WARN_LOG(BOOT, "CoreInit used:");
+	for each (std::string s in exports.usedCoreInit)
+	{
+		WARN_LOG(BOOT, "%s", s.c_str());
+	}
 
-	GPR(1) = 0x84000000; // setup stack
+	GPR(1) = 0x83000000; // setup stack
+	rSPR(1007) = 1; // main core
+	PC = reader->GetEntryPoint();
+	Memory::Write_U32(0x80001000, exports.map["coreinit.rpl"]["MEMAllocFromDefaultHeapEx"]);
+	Memory::Write_U32(0x80001000 - 4, exports.map["coreinit.rpl"]["MEMAllocFromDefaultHeap"]);
+	Memory::Write_U32(0x80001010, exports.map["coreinit.rpl"]["MEMFreeToDefaultHeap"]);
+	Memory::Write_U32(0x38800001, 0x80001000 - 4);
+	Memory::Write_U32(0x4e800020, 0x80001000);
+	Memory::Write_U32(0x4e800020, 0x80001010);
+	//PowerPC::debug_interface.SetBreakpoint(0x80001000);
+	//PowerPC::debug_interface.SetBreakpoint(0x80001010);
+	((UReg_MSR&)MSR).FP = 1; // Enable floating point
+	HLE_WiiU_CoreInit::Reset();
 	return true;
 
 }

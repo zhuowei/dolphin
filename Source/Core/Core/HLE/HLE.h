@@ -21,6 +21,7 @@ namespace HLE
 	{
 		HLE_TYPE_GENERIC = 0,    // Miscellaneous function
 		HLE_TYPE_DEBUG   = 1,    // Debug output function
+		HLE_TYPE_WIIU    = 2,
 	};
 
 	void PatchFunctions();
@@ -32,6 +33,7 @@ namespace HLE
 	u32 GetFunctionIndex(u32 em_address);
 	int GetFunctionTypeByIndex(u32 index);
 	int GetFunctionFlagsByIndex(u32 index);
+	const char* GetFunctionNameByIndex(u32 index);
 
 	bool IsEnabled(int flags);
 

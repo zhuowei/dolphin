@@ -113,6 +113,19 @@ static void GenerateDSIException(u32 _EffectiveAddress, bool _bWrite);
 template <XCheckTLBFlag flag, typename T>
 __forceinline T ReadFromHardware(const u32 em_address)
 {
+	if (em_address < 0x10000)
+	{
+		ERROR_LOG(MEMMAP, "read of null: addr=%x pc=%x", em_address, PC);
+	}
+	if ((em_address & 0xffff0000) == 0xffff0000)
+	{
+		WARN_LOG(MEMMAP, "read in 0xffff0000 region: %x", em_address);
+		if (em_address == 0xffffffff) {
+			PanicAlert("Em_address is 0xffffffff; this is probably very bad");
+			return 0;
+		}
+		return bswap((*(const T*)&m_pThread[em_address & 0xffff]));
+	}
 	int segment = em_address >> 28;
 	// Quick check for an address that can't meet any of the following conditions,
 	// to speed up the MMU path.
@@ -190,6 +203,17 @@ __forceinline T ReadFromHardware(const u32 em_address)
 template <XCheckTLBFlag flag, typename T>
 __forceinline void WriteToHardware(u32 em_address, const T data)
 {
+	if (em_address < 0x10000)
+	{
+		ERROR_LOG(MEMMAP, "write of null: addr=%x val=%x pc=%x", em_address, (u32) data, PC);
+	}
+
+	if ((em_address & 0xffff0000) == 0xffff0000)
+	{
+		WARN_LOG(MEMMAP, "write in 0xffff0000 region: %x", em_address);
+		*(T*)&m_pThread[em_address & 0xffff] = bswap(data);
+		return;
+	}
 	int segment = em_address >> 28;
 	// Quick check for an address that can't meet any of the following conditions,
 	// to speed up the MMU path.

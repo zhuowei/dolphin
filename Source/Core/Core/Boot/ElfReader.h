@@ -5,6 +5,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include "Core/Boot/ElfTypes.h"
 
@@ -42,6 +43,8 @@ public:
 	class RPLExportsMap {
 	public:
 		std::unordered_map<std::string, std::unordered_map<std::string, u32> > map;
+		std::unordered_set<std::string> usedCoreInit;
+
 		void AddExport(std::string const& libraryname, std::string const& symbolname, u32 symbol)
 		{
 			map[libraryname][symbolname] = symbol;

@@ -191,6 +191,7 @@ void PPCSymbolDB::LogFunctionCall(u32 addr)
 	if (iter != functions.end())
 	{
 		Symbol &f = iter->second;
+		WARN_LOG(CONSOLE, "calling %s(%x) from %x", f.name.c_str(), addr, PC);
 		f.numCalls++;
 	}
 }

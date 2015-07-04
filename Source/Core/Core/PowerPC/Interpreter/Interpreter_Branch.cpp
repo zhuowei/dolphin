@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "Core/PowerPC/PPCAnalyst.h"
+#include "Core/PowerPC/PPCSymbolDB.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
 
 void Interpreter::bx(UGeckoInstruction _inst)
@@ -16,10 +17,12 @@ void Interpreter::bx(UGeckoInstruction _inst)
 		NPC = PC+SignExt26(_inst.LI << 2);
 /*
 #ifdef _DEBUG
+*/
 	if (_inst.LK)
 	{
-		PPCAnalyst::LogFunctionCall(NPC);
+		g_symbolDB.LogFunctionCall(NPC);
 	}
+/*
 #endif*/
 
 	m_EndBlock = true;
@@ -124,7 +127,21 @@ void Interpreter::rfid(UGeckoInstruction _inst)
 // We do it anyway, though :P
 void Interpreter::sc(UGeckoInstruction _inst)
 {
+#if 0
 	Common::AtomicOr(PowerPC::ppcState.Exceptions, EXCEPTION_SYSCALL);
+#else
+	ERROR_LOG(POWERPC, "SC called! r0=%x (%d) r3=%x r4=%x r5=%x r6=%x r7=%x r8=%x r9=%x r10=%x pc=%x", PowerPC::ppcState.gpr[0],
+		PowerPC::ppcState.gpr[0],
+		PowerPC::ppcState.gpr[3],
+		PowerPC::ppcState.gpr[4],
+		PowerPC::ppcState.gpr[5],
+		PowerPC::ppcState.gpr[6],
+		PowerPC::ppcState.gpr[7],
+		PowerPC::ppcState.gpr[8],
+		PowerPC::ppcState.gpr[9],
+		GPR(10),
+		PC);
+#endif
 	PowerPC::CheckExceptions();
 	m_EndBlock = true;
 }

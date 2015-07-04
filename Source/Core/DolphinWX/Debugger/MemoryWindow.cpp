@@ -153,6 +153,7 @@ void CMemoryWindow::Load(IniFile& ini)
 
 void CMemoryWindow::JumpToAddress(u32 _Address)
 {
+	WARN_LOG(BOOT, "debugger: JumpToAddress: %x", _Address);
 	memview->Center(_Address);
 }
 

@@ -268,6 +268,9 @@
     <ClCompile Include="HLE\HLE_OS.cpp">
       <Filter>HLE</Filter>
     </ClCompile>
+    <ClCompile Include="HLE\HLE_WiiU_CoreInit.cpp">
+      <Filter>HLE</Filter>
+    </ClCompile>
     <ClCompile Include="PowerPC\Interpreter\Interpreter.cpp">
       <Filter>PowerPC\Interpreter</Filter>
     </ClCompile>
@@ -806,6 +809,9 @@
       <Filter>HLE</Filter>
     </ClInclude>
     <ClInclude Include="HLE\HLE_OS.h">
+      <Filter>HLE</Filter>
+    </ClInclude>
+	<ClInclude Include="HLE\HLE_WiiU_CoreInit.h">
       <Filter>HLE</Filter>
     </ClInclude>
     <ClInclude Include="PowerPC\Interpreter\Interpreter.h">

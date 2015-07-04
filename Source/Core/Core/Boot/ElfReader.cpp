@@ -278,7 +278,7 @@ bool ElfReader::LoadInto(u32 vaddr)
 	
 	INFO_LOG(MASTER_LOG,"%i sections:", header->e_shnum);
 
-	u32 lastSuggestedAddress = 0;
+	u32 lastSuggestedAddress = 0xffffffff;
 	u32 lastLength = 0;
 	u32 lastWriteAddress = baseAddress;
 
@@ -287,11 +287,16 @@ bool ElfReader::LoadInto(u32 vaddr)
 	for (int i=0; i<GetNumSections(); i++)
 	{
 		Elf32_Shdr *s = &sections[i];
+		if ((s->sh_addr & SHF_ALLOC) && lastSuggestedAddress == 0xffffffff)
+			lastSuggestedAddress = s->sh_addr;
 		const char *name = GetSectionName(i);
 
 		u32 writeAddr = lastWriteAddress + lastLength;
-		if (lastSuggestedAddress + lastLength != s->sh_addr) // not contiguous
+		//if (lastSuggestedAddress + lastLength != s->sh_addr) // not contiguous
+		if (((lastSuggestedAddress + lastLength) & 0xf0000000) != (s->sh_addr & 0xf0000000))
 			writeAddr = ppc_page_end(writeAddr);
+		else
+			writeAddr += (s->sh_addr - (lastSuggestedAddress + lastLength));
 		// sectionOffsets[i] = writeAddr - vaddr;
 		sectionAddrs[i] = writeAddr;
 
@@ -470,11 +475,24 @@ bool ElfReader::Relocate(RPLExportsMap& exports)
 					else
 					{
 						symAddr = findResult->second;
+						if (libname == "coreinit.rpl")
+						{
+							exports.usedCoreInit.insert(symbolName);
+						}
 					}
 				}
 				symAddr += addend;
 
 				u32 writeAddr = (offset - sections[relSectionIndex].sh_addr) + sectionAddrs[relSectionIndex];
+
+				if (addend == 0x24028 && !strcmp(symbolName, "$TEXT")) {
+					WARN_LOG(BOOT, "Debugger pls symAddr=%x symValue=%x offset=%x writeAddr=%x addend=%x %x %x %x %x %x %x\n",
+						symAddr, symValue, offset, writeAddr, addend,
+						symSectionIndex, sections[symSectionIndex].sh_addr, sectionAddrs[symSectionIndex],
+						relSectionIndex, sections[relSectionIndex].sh_addr, sectionAddrs[relSectionIndex]);
+				}
+				if (!strcmp(symbolName, "$UNDEF"))
+					symAddr = 0;
 
 				switch (relocType)
 				{
@@ -561,6 +579,8 @@ bool ElfReader::LoadExports(std::string const& libraryname, RPLExportsMap& expor
 				const char* name = ((const char*) sectionPtr) + Common::swap32(exports[i].name_index);
 				u32 address = Common::swap32(exports[i].address);
 				exportsMap.AddExport(libraryname, name, address);
+				if (g_symbolDB.GetSymbolFromName(name) == nullptr)
+					g_symbolDB.AddKnownSymbol(address, 4, name, Symbol::SYMBOL_FUNCTION); // I know it's inefficient: Haters gotta hate.
 			}
 		}
 	}

@@ -67,6 +67,7 @@ u8* m_pRAM;
 u8* m_pL1Cache;
 u8* m_pEXRAM;
 u8* m_pFakeVMEM;
+u8* m_pThread;
 
 // MMIO mapping object.
 MMIO::Mapping* mmio_mapping;
@@ -113,6 +114,7 @@ static MemoryView views[] =
 	{&m_pEXRAM,    0x10000000, EXRAM_SIZE,    MV_WII_ONLY},
 	{nullptr,      0x90000000, EXRAM_SIZE,    MV_WII_ONLY | MV_MIRROR_PREVIOUS},
 	{nullptr,      0xD0000000, EXRAM_SIZE,    MV_WII_ONLY | MV_MIRROR_PREVIOUS},
+	{&m_pThread,   0xFFFF0000, 0x10000,       MV_WII_ONLY},
 };
 static const int num_views = sizeof(views) / sizeof(MemoryView);
 
@@ -125,6 +127,7 @@ void Init()
 	// Disable it entirely on 32bit targets.
 	bFakeVMEM = !bMMU;
 #endif
+	bFakeVMEM = false;
 
 	u32 flags = 0;
 	if (wii) flags |= MV_WII_ONLY;

@@ -34,6 +34,7 @@ extern u8* m_pRAM;
 extern u8* m_pEXRAM;
 extern u8* m_pL1Cache;
 extern u8* m_pFakeVMEM;
+extern u8* m_pThread;
 extern bool bFakeVMEM;
 
 enum
@@ -42,7 +43,7 @@ enum
 	// what will be reported in lowmem, and thus used by emulated software.
 	// Note: Writing to lowmem is done by IPL. If using retail IPL, it will
 	// always be set to 24MB.
-	REALRAM_SIZE  = 0x0f000000,
+	REALRAM_SIZE  = 0x10000000,
 	RAM_SIZE      = ROUND_UP_POW2(REALRAM_SIZE),
 	RAM_MASK      = RAM_SIZE - 1,
 	FAKEVMEM_SIZE = 0x02000000,
@@ -50,7 +51,7 @@ enum
 	L1_CACHE_SIZE = 0x00040000,
 	L1_CACHE_MASK = L1_CACHE_SIZE - 1,
 	IO_SIZE       = 0x00010000,
-	EXRAM_SIZE    = 0x04000000,
+	EXRAM_SIZE    = 0x10000000,
 	EXRAM_MASK    = EXRAM_SIZE - 1,
 
 	ADDR_MASK_HW_ACCESS = 0x0c000000,
