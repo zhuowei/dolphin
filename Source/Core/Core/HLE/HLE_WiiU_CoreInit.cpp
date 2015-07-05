@@ -73,12 +73,17 @@ static u32 heapPtr;
 static void HeapAllocStubImpl(u32 size, u32 align)
 {
 	WARN_LOG(BOOT, "Heap alloc: %x %x", size, align);
+	if (align == 0)
+	{
+		ERROR_LOG(BOOT, "Heap align is 0!!!");
+		align = 4;
+	}
 	u32 alignRem = heapPtr % align;
 	u32 alignAdd = (alignRem == 0 ? 0 : align - alignRem);
 	u32 retval = heapPtr + alignAdd;
 	heapPtr += size + alignAdd;
 	GPR(3) = retval;
-	if (retval > 0x9a000000) {
+	if (retval > 0x9f000000) {
 		PanicAlert("Running out of memory in heap!");
 	}
 	NPC = LR;
@@ -162,6 +167,18 @@ void exit()
 	NPC = LR;
 }
 
+void GX2CalcSurfaceSizeAndAlignment()
+{
+	// see https://github.com/wiiudev/libwiiu/blob/master/examples/gx2thread/src/loader.h
+	u32 surface = GPR(3);
+	u32 width = Memory::Read_U32(surface + 4);
+	u32 height = Memory::Read_U32(surface + 8);
+	// this is wrong
+	Memory::Write_U32(width * height * 4, surface + 32); // imageSize
+	Memory::Write_U32(64, surface + 56); // Alignment
+	NPC = LR;
+}
+
 void OSThread::DumpAttributes()
 {
 	WARN_LOG(BOOT, "OSThread nativePtr=%x entry=%x argc=%x argv=%x stack=%x stack_size=%x priority=%x attr=%x",
@@ -174,6 +191,12 @@ void DumpArgsAndReturn()
 		HLE::GetFunctionNameByIndex(HLE::GetFunctionIndex(PC)),
 		GPR(3), GPR(4), GPR(5), GPR(6), GPR(7), GPR(8), GPR(9));
 	NPC = LR;
+}
+
+void DumpArgsAndReturnFalse()
+{
+	DumpArgsAndReturn();
+	GPR(3) = 0;
 }
 
 void OSContext::Save()

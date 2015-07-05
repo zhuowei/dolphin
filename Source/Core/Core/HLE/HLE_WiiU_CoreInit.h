@@ -110,8 +110,10 @@ namespace HLE_WiiU_CoreInit
 	void OSReceiveMessage();
 	void OSGetCallArgs();
 	void OSGetForegroundBucket();
+	void GX2CalcSurfaceSizeAndAlignment();
 	void exit();
 	void DumpArgsAndReturn();
+	void DumpArgsAndReturnFalse();
 
 	void Reset();
 };

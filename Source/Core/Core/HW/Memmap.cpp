@@ -319,6 +319,9 @@ u8* GetPointer(const u32 address)
 
 bool IsRAMAddress(const u32 address, bool allow_locked_cache, bool allow_fake_vmem)
 {
+	u32 a = address & 0xf0000000;
+	if (a == 0x80000000 || a == 0x90000000)
+		return true;
 	switch ((address >> 24) & 0xFC)
 	{
 	case 0x00:
